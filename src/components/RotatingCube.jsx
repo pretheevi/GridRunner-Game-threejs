@@ -10,10 +10,14 @@ function getRandomColor() {
 function RotatingCube({ keys }) {
   const cubeRef = useRef();
   const cubeColor = useRef(new THREE.Color("orange"));
-  const { camera, gl } = useThree();
+  const { camera } = useThree();
   const controlsRef = useRef();
   const [isMoving, setIsMoving] = useState(false);
 
+  // Use useState for windowKey to trigger re-renders
+  const [windowKey, setWindowKey] = useState({ w: false, a: false, s: false, d: false });
+
+  // Handle OrbitControls start/end events
   useEffect(() => {
     const controls = controlsRef.current;
     if (!controls || !cubeRef.current) return;
@@ -30,6 +34,32 @@ function RotatingCube({ keys }) {
     };
   }, []);
 
+  // Handle keyboard events
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const key = e.key.toLowerCase();
+      if (windowKey[key] !== undefined && !windowKey[key]) {
+        setWindowKey((prev) => ({ ...prev, [key]: true }));
+      }
+    };
+
+    const handleKeyUp = (e) => {
+      const key = e.key.toLowerCase();
+      if (windowKey[key] !== undefined && windowKey[key]) {
+        setWindowKey((prev) => ({ ...prev, [key]: false }));
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [windowKey]);
+
+  // Animation frame
   useFrame(() => {
     if (cubeRef.current && cubeRef.current.material) {
       cubeRef.current.material.color.lerp(cubeColor.current, 0.1);
@@ -56,16 +86,16 @@ function RotatingCube({ keys }) {
     const direction = new THREE.Vector3();
     cubeRef.current.getWorldDirection(direction);
 
-    if (keys.w) {
+    if (keys.w || windowKey.w) {
       cubeRef.current.position.addScaledVector(direction, moveSpeed);
     }
-    if (keys.s) {
+    if (keys.s || windowKey.s) {
       cubeRef.current.position.addScaledVector(direction, -moveSpeed);
     }
-    if (keys.a) {
+    if (keys.a || windowKey.a) {
       cubeRef.current.rotation.y += rotationSpeed;
     }
-    if (keys.d) {
+    if (keys.d || windowKey.d) {
       cubeRef.current.rotation.y -= rotationSpeed;
     }
   });
